@@ -60,4 +60,4 @@
 
 ```bash
 git clone https://github.com/abaiar/-AI-Agent-.git
-cd cloud-mist-guide
+cd -AI-Agent-
