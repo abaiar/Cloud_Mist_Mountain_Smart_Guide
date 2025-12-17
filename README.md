@@ -88,8 +88,8 @@ $env:DASHSCOPE_API_KEY="你的_sk_密钥"
 **💻 前端设置 (Frontend Setup)**
 
 ```bash
-# 1. 进入前端目录 (如果 Vue 代码在 frontend 文件夹下，请进入该文件夹)
-# cd frontend 
+# 1. 进入前端目录 (如果 Vue 代码在 scenic-guide-web 文件夹下，请进入该文件夹)
+cd scenic-guide-web
 
 # 2. 安装 npm 依赖
 npm install
