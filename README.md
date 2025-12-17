@@ -14,7 +14,7 @@
 
 ## 📸 演示效果 (Demo)
 
-![系统主界面演示]
+[系统主界面演示]
 <img width="1915" height="1077" alt="image" src="https://github.com/user-attachments/assets/e933cda8-c4a5-4d9e-be26-1ad1d8a666b8" />
 *(图示：左侧为 SVG 交互地图，支持路径动态高亮；右侧为 AI 智能导游对话窗口)*
 
