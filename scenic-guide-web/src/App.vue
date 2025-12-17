@@ -3,7 +3,7 @@
     <div class="left-panel">
       <div class="header">
         <h2>🏔️ 云雾山智慧导游</h2>
-        <p>计245  赵健硕、季艺萍  数据结构课程设计</p>
+        <p>计245 数据结构课程设计</p>
       </div>
       <ScenicMap :active-path="currentPath" @spot-click="handleSpotClick" />
     </div>
