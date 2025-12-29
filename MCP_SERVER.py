@@ -8,7 +8,7 @@ mcp = FastMCP("ScenicArea_Guide")
 
 # --- 1. 定义节点（名字、坐标 x,y、介绍）---
 # 画布参考范围: x[0-1000], y[0-800]
-SPOTS_INFO = {
+PLACE = {
     # === A区：入口与服务区 (主要位于画布下方) ===
     "S01": {"name": "景区南大门", "desc": "【设施概述】 景区南大门坐落于山脚下的开阔地带，紧邻游客中心与碧波湖区域，是绝大多数游客进入景区的首选入口，也是景区的“门面担当”。它不仅仅是一个检票通道，更是一座融合了当地传统建筑风格与现代设计理念的宏伟地标。【特色与服务】 南大门采用巨型石木结构，飞檐斗拱，气势磅礴，匾额上烫金的大字在阳光下熠熠生辉。大门广场宽敞整洁，常年摆放着巨型花坛与景观小品，是拍摄“到此一游”集体照的最佳背景。 在功能上，南大门设有多个智能验票闸机，支持人脸识别与身份证快速入园，极大缩短了排队时间。大门两侧设有安检区与特殊通道（无障碍通道、军人/老人优先通道），体现了景区的人文关怀。夜幕降临时，大门的轮廓灯光亮起，金碧辉煌，宛如一座天宫的入口，迎接每一位远道而来的宾客。", "x": 500, "y": 780},
     "S02": {"name": "游客中心", "desc": "【设施概述】 游客中心紧邻景区南大门，是一座现代化的综合服务大楼，也是整个景区的指挥调度中心。其外观造型模仿了周围起伏的山峦，流线型的屋顶与背景环境完美融合。这里是游客获取信息、寻求帮助、休憩调整的第一站。【特色与服务】 走进大厅，巨大的电子显示屏实时滚动播放着景区的天气、客流分布以及各个景点的实时画面。服务台的工作人员提供多语言咨询服务，并备有各类纸质导览图和电子语音导览器租赁。 游客中心的功能极其强大：医疗救助站：配备专业医护人员和急救设备，处理突发身体不适。母婴室与第三卫生间：设施温馨齐全，解决了家庭出游的后顾之忧。行李寄存处：提供智能储物柜和人工大件行李寄存。影视以此厅：循环播放景区的宣传纪录片，让您未进山先知山美。失物招领与投诉中心：全天候保障游客权益。 这里就像一位贴心的全能管家，时刻准备着为您解决旅途中的一切难题。", "x": 580, "y": 750},
@@ -52,276 +52,423 @@ SPOTS_INFO = {
     "S30": {"name": "索道下站B", "desc": "【设施概述】 这条连接山脚与山顶的索道，被誉为“空中的观景长廊”。索道下站：位于南部碧波湖畔，建筑风格古色古香，与周围的水景园林融为一体。游客在此排队检票，登上全透明的观景缆车。【特色与体验】 这不仅仅是交通工具，更是一个移动的景点。索道全长数千米，垂直落差巨大。 坐在缆车内，随着轿厢缓缓升起，您将体验到视角的急剧变化：从平视碧波荡漾的湖水，到俯视郁郁葱葱的树冠，再到平视巍峨的崖壁。在缆车中段，您可以清晰地看到脚下的“好汉坡”蜿蜒曲折，看到登山者如蚂蚁般挪动，从而庆幸自己选择了“上帝视角”。 在云雾天气，缆车穿云破雾，仿佛在仙境中穿行；夕阳西下时，更是能拍到“缆车在落日中穿行”的绝美剪影。上下两站均设有观景平台、洗手间和小卖部，方便游客整顿装备。", "x": 450, "y": 600},
 }
 
-# --- 2. 定义边 这里定义了哪两个景点是相连的，以及权重是多少---
-# 权重代表距离(米)或通行难度系数的综合值
+# --- 2. 定义边 ---
+# 边（Edge）代表路，这里定义了哪两个景点是相连的
+# 元组结构: (起点, 终点, 权重)。权重代表距离(米)
 GRAPH_EDGES = [
     # === 入口区互通 ===
-    ("S01", "S02", 50), ("S01", "S03", 100), ("S02", "S05", 80),
-    ("S03", "S05", 120), ("S05", "S06", 200), # 车站通往湖区
-    ("S04", "S11", 300), # 北门直接通往林区
+    # 南大门连游客中心，距离50米
+    ("S01", "S02", 50), 
+    # 南大门连停车场，距离100米
+    ("S01", "S03", 100), 
+    # 游客中心连观光车站，距离80米
+    ("S02", "S05", 80),
+    # 停车场连观光车站，距离120米
+    ("S03", "S05", 120), 
+    # 车站通往湖区S06，距离200米
+    ("S05", "S06", 200), 
+    # 北门S04直接通往林区S11，距离较远300米
+    ("S04", "S11", 300), 
 
     # === 湖滨区连接 ===
-    ("S06", "S07", 150), ("S06", "S09", 200), ("S06", "S10", 180),
-    ("S07", "S08", 80),  # 栈道连湖心亭
-    ("S08", "S10", 120), # 湖心亭连广场
-    ("S10", "S02", 250), # 广场回游客中心
-    ("S09", "S11", 300), # 垂钓园通往百鸟林
+    # 湖连栈道
+    ("S06", "S07", 150), 
+    # 湖连垂钓园
+    ("S06", "S09", 200), 
+    # 湖连广场
+    ("S06", "S10", 180),
+    # 栈道连湖心亭
+    ("S07", "S08", 80),  
+    # 湖心亭连广场
+    ("S08", "S10", 120), 
+    # 广场回游客中心，形成环路
+    ("S10", "S02", 250), 
+    # 垂钓园通往百鸟林，连接了B区和C区
+    ("S09", "S11", 300), 
 
     # === 山林区连接 (开始爬坡) ===
-    ("S06", "S15", 400), # 湖边到索道下站A
-    ("S15", "S14", 100), # 索道站旁边是好汉坡入口
-    ("S14", "S12", 300), # 好汉坡连一线天
-    ("S12", "S13", 200), # 一线天连瀑布
-    ("S11", "S13", 400), # 林区连瀑布
-    ("S13", "S16", 250), # 瀑布连情人谷
-    ("S16", "S04", 500), # 情人谷通北门
+    # 湖边到索道下站A
+    ("S06", "S15", 400), 
+    # 索道站旁边是好汉坡入口
+    ("S15", "S14", 100), 
+    # 好汉坡连一线天
+    ("S14", "S12", 300), 
+    # 一线天连瀑布
+    ("S12", "S13", 200), 
+    # 林区连瀑布
+    ("S11", "S13", 400), 
+    # 瀑布连情人谷
+    ("S13", "S16", 250), 
+    # 情人谷通北门，这是一条很长的路
+    ("S16", "S04", 500), 
 
     # === 索道捷径 ===
-    ("S15", "S22", 1200), # 索道直达山顶 (距离长但速度快，这里权值设大一点代表物理距离，或者设小代表时间短，这里按物理距离)
+    # 索道直达山顶 (距离1200米，物理距离远但不用爬山)
+    ("S15", "S22", 1200), 
 
     # === 古刹区连接 (半山腰) ===
-    ("S14", "S17", 500), # 好汉坡爬上去是古寺
-    ("S17", "S18", 60),  ("S17", "S19", 80),
-    ("S18", "S21", 100), ("S19", "S20", 50),
-    ("S21", "S25", 300), # 素斋馆通往玻璃栈道
+    # 好汉坡爬上去是古寺
+    ("S14", "S17", 500), 
+    # 古寺连藏经阁
+    ("S17", "S18", 60),  
+    # 古寺连钟楼
+    ("S17", "S19", 80),
+    # 藏经阁连素斋馆
+    ("S18", "S21", 100), 
+    # 钟楼连祈福台
+    ("S19", "S20", 50),
+    # 素斋馆通往玻璃栈道，连接了D区和E区
+    ("S21", "S25", 300), 
 
     # === 登顶区连接 (高海拔) ===
-    ("S22", "S23", 150), # 索道上站到观云台
-    ("S22", "S27", 200), # 索道上站到杜鹃园
-    ("S23", "S24", 300), # 观云台冲顶摘星峰
-    ("S24", "S29", 100), # 顶峰旁边是露营地
-    ("S25", "S23", 400), # 玻璃栈道通往观云台
-    ("S26", "S24", 150), # 奇石在峰顶附近
+    # 索道上站到观云台
+    ("S22", "S23", 150), 
+    # 索道上站到杜鹃园
+    ("S22", "S27", 200), 
+    # 观云台冲顶摘星峰
+    ("S23", "S24", 300), 
+    # 顶峰旁边是露营地
+    ("S24", "S29", 100), 
+    # 玻璃栈道通往观云台
+    ("S25", "S23", 400), 
+    # 奇石在峰顶附近
+    ("S26", "S24", 150), 
+    # 奇石连杜鹃园
     ("S26", "S27", 200), 
     
     # === 商业设施连接 ===
-    ("S28", "S25", 50),  # 悬崖餐厅紧邻玻璃栈道
-    ("S30", "S02", 50),  # 索道下站B在游客中心旁
-    ("S30", "S22", 500), # 山顶也有分店(假设路径) -> 这里改为连接S22
+    # 悬崖餐厅紧邻玻璃栈道
+    ("S28", "S25", 50),  
+    # 索道下站B在游客中心旁
+    ("S30", "S02", 50),  
+    # 索道下站B连接索道上站（修正路径）
+    ("S30", "S22", 500), 
 ]
 
-GRAPH = {code: {} for code in SPOTS_INFO}
-for u, v, w in GRAPH_EDGES:
+# --- 构建图：把边转换成字典结构 ---
+# 初始化一个空字典 GRAPH，用于存储图结构
+GRAPH = {}
+# 先遍历景点信息中的每一个代号 code
+for code in PLACE:
+    # 为每个景点创建一个空字典，准备存放它的邻居
+    GRAPH[code] = {}
+
+# 遍历 GRAPH_EDGES 列表中的每一条边
+for edge in GRAPH_EDGES:
+    u = edge[0] # 获取边的起点
+    v = edge[1] # 获取边的终点
+    w = edge[2] # 获取边的权重（距离）
+    
+    # 确保起点和终点都在我们的景点列表里，防止数据错误
     if u in GRAPH and v in GRAPH:
+        # 因为是无向图（路是双向的），所以要存两次
+        # 记录从 u 到 v 的距离是 w
         GRAPH[u][v] = w
+        # 记录从 v 到 u 的距离也是 w
         GRAPH[v][u] = w
 
-def _get_code(name: str) -> Optional[str]:
-    for code, info in SPOTS_INFO.items():
-        if name == info['name'] or name in info['name'] or info['name'] in name: 
+# --- 辅助函数：根据名字找代号 ---
+# 定义函数，输入是景点名字，输出是景点代号(如 "游客中心" -> "S02")
+def GetCode(name):
+    # 遍历 PLACE 里的所有景点代号
+    for code in PLACE:
+        # 获取该代号对应的详细信息
+        temp = PLACE[code]
+        # 进行模糊匹配：如果输入名字完全相等，或者互相包含
+        if name == temp['name'] or name in temp['name'] or temp['name'] in name: 
+            # 找到了就返回代号
             return code
+    # 如果找了一圈都没找到，返回 None
     return None
 
-# --- [新增] 内部算法函数 (复用逻辑) ---
+# --- [核心算法] 最短路径 Dijkstra ---
+# 定义 Dijkstra 算法函数，计算从 start_code 到 end_code 的最短路径
+# 这里没有使用 heapq 优先队列，而是使用了列表，方便初学者理解原理
+def Dijkstra(start_code, end_code):
+    # 1. 初始化阶段
+    distances = {}      # 字典：记录从起点到每个点的目前已知最短距离
+    predecessors = {}   # 字典：记录每个点的前一个点是谁（用于最后倒推路径）
+    unvisited = []      # 列表：记录还有哪些点没有被"处理"过
 
-def _dijkstra(start_code: str, end_code: str) -> Tuple[float, List[str]]:
-    if start_code not in GRAPH or end_code not in GRAPH:
-        return float('inf'), []
-
-    pq = [(0, start_code)]
-    distances = {node: float('inf') for node in GRAPH}
+    # 遍历图中的每一个节点
+    for node in GRAPH:
+        distances[node] = float('inf') # 初始时，假设起点到所有点的距离都是无穷大
+        predecessors[node] = None      # 初始时，所有点都没有前驱节点
+        unvisited.append(node)         # 把所有点都加入未访问列表
+    
+    # 起点到自己的距离设为 0
     distances[start_code] = 0
-    predecessors = {node: None for node in GRAPH}
 
-    while pq:
-        d, u = heapq.heappop(pq)
-        if d > distances[u]: continue
-        if u == end_code: break
+    # 2. 循环处理阶段
+    # 只要"未访问列表"里还有节点，就继续循环
+    while len(unvisited) > 0:
+        # 步骤A：在未访问的节点中，找到距离起点最近的那个点
+        current_node = None        # 当前要处理的节点
+        min_dist = float('inf')    # 临时变量，用来找最小值
+        
+        # 遍历所有未访问的节点（这里是O(N)操作，效率较低但逻辑简单）
+        for node in unvisited:
+            # 如果发现这个节点的距离比当前记录的最小值还小
+            if distances[node] < min_dist:
+                min_dist = distances[node] # 更新最小值
+                current_node = node        # 更新当前节点
+        
+        # 如果找不到可达节点了（剩下的都是无穷大），或者当前处理的就是终点
+        if current_node is None:
+            break # 退出循环
+        if current_node == end_code:
+            break # 找到了终点，也可以提前退出
+            
+        # 步骤B：从未访问列表中移除这个节点，表示它已经"结案"了
+        unvisited.remove(current_node)
 
-        for v, weight in GRAPH[u].items():
-            if distances[u] + weight < distances[v]:
-                distances[v] = distances[u] + weight
-                predecessors[v] = u
-                heapq.heappush(pq, (distances[v], v))
+        # 步骤C：检查它的所有邻居（松弛操作）
+        neighbors = GRAPH[current_node] # 获取当前节点的所有邻居
+        for neighbor in neighbors:
+            weight = neighbors[neighbor] # 获取到邻居的距离
+            # 计算：如果走当前这个点到邻居，总距离是多少
+            new_distance = distances[current_node] + weight
+            
+            # 如果算出来的新距离 比 原来记录的距离更短
+            if new_distance < distances[neighbor]:
+                distances[neighbor] = new_distance     # 更新邻居的最短距离
+                predecessors[neighbor] = current_node  # 更新邻居的前驱（是你带我来的）
 
+    # 3. 结果处理阶段
+    # 如果终点的距离还是无穷大，说明路不通
     if distances[end_code] == float('inf'):
         return float('inf'), []
 
+    # 4. 回溯路径（通过 predecessors 倒着往回找）
     path = []
-    curr = end_code
-    while curr:
-        path.insert(0, curr)
-        curr = predecessors[curr]
+    curr = end_code # 从终点开始
+    # 只要 current 不为空（还没回溯到起点的 None）
+    while curr is not None:
+        path.insert(0, curr) # 把当前点插到路径列表的最前面
+        curr = predecessors[curr] # 移动到前一个点
     
+    # 返回：(总距离, 路径列表)
     return distances[end_code], path
 
 # --- 3. MCP 工具定义 ---
 
+# 使用装饰器注册这个函数为 MCP 工具
 @mcp.tool()
 def find_shortest_path(start_name: str, end_name: str) -> str:
     """计算景区内两点间的最短路径"""
-    start = _get_code(start_name)
-    end = _get_code(end_name)
+    # 先把用户输入的中文名字转换成代号
+    start = GetCode(start_name)
+    end = GetCode(end_name)
     
-    if not start or not end:
-        return json.dumps({"error": f"景点无法识别: {start_name} 或 {end_name}"}, ensure_ascii=False)
+    # 如果有一个名字没找到，返回错误提示 JSON
+    if start is None or end is None:
+        return json.dumps({"error": "找不到这个景点，请检查名字"}, ensure_ascii=False)
 
-    dist, path = _dijkstra(start, end)
+    # 调用上面的 Dijkstra 算法计算
+    dist, path = Dijkstra(start, end)
 
+    # 如果距离是无穷大，说明不可达
     if dist == float('inf'):
-        return json.dumps({"found": False, "msg": "两点之间不可达"}, ensure_ascii=False)
+        return json.dumps({"found": False, "msg": "两点之间不通"}, ensure_ascii=False)
     
-    path_names = [SPOTS_INFO[n]['name'] for n in path]
+    # 将路径里的代号（如 S01）转换回中文名字
+    path_names = []
+    for n in path:
+        path_names.append(PLACE[n]['name'])
     
+    # 用箭头拼接成字符串，如 "南门 -> 游客中心 -> ..."
+    route_str = " -> ".join(path_names)
+
+    # 构建返回结果的字典
     result = {
         "found": True,
-        "start": SPOTS_INFO[start]['name'],
-        "end": SPOTS_INFO[end]['name'],
+        "start": PLACE[start]['name'],
+        "end": PLACE[end]['name'],
         "total_distance": dist,
-        "path_codes": path,
         "path_names": path_names,
-        "description": f"从【{SPOTS_INFO[start]['name']}】到【{SPOTS_INFO[end]['name']}】全程{dist}米。\n推荐路线：{' -> '.join(path_names)}"
+        "description": f"从【{PLACE[start]['name']}】到【{PLACE[end]['name']}】全程{dist}米。\n推荐路线：{route_str}"
     }
+    # 把字典转成 JSON 字符串返回
     return json.dumps(result, ensure_ascii=False)
 
+# 注册第二个工具：生成全景点游览路线
 @mcp.tool()
 def generate_all_spots_tour(start_node_name: str = "景区南大门") -> str:
     """
-    生成一条能够涵盖所有景点的随机游览路线（特种兵打卡模式）。
-    算法：基于贪心策略的最近邻算法，保证连通性。
+    生成一条全景点游览路线（简化版）。
+    原理：贪心算法——走到哪里，就找下一个离得最近的没去过的地方。
     """
-    start_code = _get_code(start_node_name)
-    if not start_code: 
-        start_code = "S01" # 默认南大门
+    # 获取起点代号，默认为南门
+    start_code = GetCode(start_node_name)
+    if start_code is None: 
+        start_code = "S01"
 
-    unvisited = set(SPOTS_INFO.keys())
+    # 初始化一个列表，记录还没去过的景点
+    unvisited = []
+    for code in PLACE:
+        unvisited.append(code)
+    
+    # 如果起点在列表里，先把它移除（因为已经在起点了）
     if start_code in unvisited:
         unvisited.remove(start_code)
     
+    # 初始化当前位置、总路径、总距离
     current_node = start_code
-    full_path_codes = [current_node]
+    full_path_codes = [current_node] # 路径里先放入起点
     total_distance = 0
     
-    # 贪心循环：每次找离当前节点最近的那个未访问节点
-    while unvisited:
-        nearest_node = None
-        min_dist = float('inf')
-        segment_path = []
+    # 只要"未访问列表"里还有景点，就继续走
+    while len(unvisited) > 0:
+        nearest_node = None      # 最近的那个点
+        min_dist = float('inf')  # 最小距离
+        segment_path = []        # 两点之间的小段路径
 
-        # 在未访问集合中寻找最近邻 (计算当前节点到所有未访问节点的真实路径距离)
-        # 为了性能，这里可以简化，但为了准确，我们调用多次Dijkstra
-        # 如果节点太多，可以只搜索BFS范围内的邻居，这里为了演示效果，搜索全部剩余节点
+        # 遍历剩下所有没去过的地方，计算从当前位置过去要多远
+        for candidate in unvisited:
+            # 用 Dijkstra 算一下距离
+            d, p = Dijkstra(current_node, candidate)
+            # 如果这个点更近
+            if d < min_dist:
+                min_dist = d
+                nearest_node = candidate
+                segment_path = p
         
-        # 优化：优先检查直接相邻的节点是否存在于未访问集合中
-        neighbors = [n for n in GRAPH[current_node].keys() if n in unvisited]
-        if neighbors:
-             # 如果有直接邻居没去过，随机选一个（增加随机性），或者选最近的
-             # 这里增加一点随机性，让每次生成的路线略有不同
-             target = random.choice(neighbors)
-             d, p = _dijkstra(current_node, target)
-             nearest_node = target
-             min_dist = d
-             segment_path = p
-        else:
-            # 如果周围都去过了，必须进行全图搜索最近的“孤岛”
-            # 这里简单处理：遍历剩余所有节点找最近的
-            for candidate in unvisited:
-                d, p = _dijkstra(current_node, candidate)
-                if d < min_dist:
-                    min_dist = d
-                    nearest_node = candidate
-                    segment_path = p
-        
-        if nearest_node and segment_path:
-            # 更新状态
-            # 注意：segment_path[0] 是 current_node，由于 full_path 已经有了，所以从 [1:] 开始加
-            full_path_codes.extend(segment_path[1:])
-            total_distance += min_dist
-            current_node = nearest_node
+        # 如果找到了最近的下一个点
+        if nearest_node is not None:
+            # 累加总距离
+            total_distance = total_distance + min_dist
             
-            # 标记沿途经过的所有节点为已访问 (防止重复走回头路去特意打卡)
-            for p_node in segment_path:
-                if p_node in unvisited:
-                    unvisited.remove(p_node)
+            # 把这段路中间经过的点加到总路径里
+            # 从索引 1 开始，因为索引 0 是当前点(也就是上一段的终点)，避免重复
+            for i in range(1, len(segment_path)):
+                node = segment_path[i]
+                full_path_codes.append(node)
+                # 如果路过的这个中间点正好也在"没去过名单"里
+                if node in unvisited:
+                    unvisited.remove(node) # 顺便把它标记为已去过
+            
+            # 更新当前位置为刚才找到的那个点
+            current_node = nearest_node
         else:
-            break # 图可能不连通
+            # 如果走不通了（图不连通），强制退出防止死循环
+            break
 
-    path_names = [SPOTS_INFO[n]['name'] for n in full_path_codes]
+    # 把代号列表转换成中文名字列表
+    path_names = []
+    for n in full_path_codes:
+        path_names.append(PLACE[n]['name'])
     
+    # 构建结果字典
     result = {
         "type": "full_tour",
-        "description": f"为您生成了一条全景点打卡路线！\n全程约 {total_distance} 米，涵盖了绝大多数景点。\n这是一场体力的考验，建议携带充足的水和食物！",
-        "path_codes": full_path_codes,
+        "description": f"为您生成了全景点打卡路线！全程约 {total_distance} 米。",
         "path_names": path_names
     }
+    # 返回 JSON
     return json.dumps(result, ensure_ascii=False)
 
+# 注册第三个工具：推荐主题路线
 @mcp.tool()
 def recommend_themed_route(theme: str) -> str:
     """
-    根据用户需求生成推荐路线。
-    支持的主题：
-    1. 'leisure' 或 '休闲': 适合老人小孩，主要在湖边和索道，不爬陡坡。
-    2. 'adventure' 或 '探险': 走好汉坡、一线天、玻璃栈道，挑战体力。
-    3. 'culture' 或 '人文': 侧重古寺、藏经阁、祈福台、钟楼。
-    4. 'nature' 或 '山水': 侧重百鸟林、瀑布、杜鹃园、云海。
+    推荐主题路线
     """
-    
-    # 预设的关键打卡点 (Key Checkpoints)
-    presets = {
-        "leisure": ["S01", "S02", "S05", "S06", "S08", "S15", "S22", "S23"], # 门-车-湖-亭-索道-云
-        "adventure": ["S04", "S11", "S13", "S12", "S14", "S17", "S25", "S28"], # 北门-鸟-瀑-一线天-好汉-寺-玻璃-悬崖
-        "culture": ["S01", "S02", "S17", "S19", "S20", "S18", "S21"], # 门-寺-钟-台-阁-素斋
-        "nature": ["S03", "S11", "S13", "S27", "S23", "S24", "S29"], # 鸟-瀑-杜鹃-云-摘星-露营
-    }
-
-    # 简单的关键词匹配
-    selected_key = "leisure" # 默认
-    if "探险" in theme or "挑战" in theme or "爬山" in theme:
+    # 根据用户输入的关键词，决定使用哪个主题 key
+    selected_key = "leisure" # 默认主题：休闲
+    # 如果输入包含"探险"或"挑战"
+    if "探险" in theme or "挑战" in theme:
         selected_key = "adventure"
-    elif "人文" in theme or "历史" in theme or "拜佛" in theme or "寺" in theme:
+    # 如果输入包含"人文"或"寺"
+    elif "人文" in theme or "寺" in theme:
         selected_key = "culture"
-    elif "山水" in theme or "自然" in theme or "风景" in theme:
+    # 如果输入包含"山水"或"风景"
+    elif "山水" in theme or "风景" in theme:
         selected_key = "nature"
     
-    checkpoints = presets[selected_key]
-    
-    # 将关键点串联起来
+    # 定义不同主题必须经过的打卡点（硬编码的路线规划）
+    checkpoints = []
+    if selected_key == "leisure":
+        # 休闲路线的点
+        checkpoints = ["S01", "S02", "S05", "S06", "S08", "S15", "S22", "S23"]
+    elif selected_key == "adventure":
+        # 探险路线的点
+        checkpoints = ["S04", "S11", "S13", "S12", "S14", "S17", "S25", "S28"]
+    elif selected_key == "culture":
+        # 文化路线的点
+        checkpoints = ["S01", "S02", "S17", "S19", "S20", "S18", "S21"]
+    elif selected_key == "nature":
+        # 自然路线的点
+        checkpoints = ["S03", "S11", "S13", "S27", "S23", "S24", "S29"]
+
+    # 开始串联这些点
     full_path = []
     total_dist = 0
     
+    # 比如有 A, B, C, D 四个点，我们要分段算 A->B, B->C, C->D
     for i in range(len(checkpoints) - 1):
-        u, v = checkpoints[i], checkpoints[i+1]
-        dist, path = _dijkstra(u, v)
+        u = checkpoints[i]     # 当前段起点
+        v = checkpoints[i+1]   # 当前段终点
+        
+        # 计算这两点间的最短路
+        dist, path = Dijkstra(u, v)
+        
         if i == 0:
-            full_path.extend(path)
+            # 如果是第一段路，把路径上的点全加进去
+            for node in path:
+                full_path.append(node)
         else:
-            full_path.extend(path[1:]) # 避免重复添加连接点
-        total_dist += dist
+            # 如果是后面的路，去掉第一个点（因为上一段的终点就是这一段的起点，避免重复）
+            for j in range(1, len(path)):
+                full_path.append(path[j])
+                
+        # 累加距离
+        total_dist = total_dist + dist
 
-    path_names = [SPOTS_INFO[n]['name'] for n in full_path]
+    # 转换成中文名字
+    path_names = []
+    for n in full_path:
+        path_names.append(PLACE[n]['name'])
     
-    reasons = {
-        "leisure": "这条路线主打【轻松休闲】，主要利用观光车和索道，避免了陡峭的爬坡，非常适合家庭出游、携带老人或儿童的游客。您可以尽情享受碧波湖的温柔与云端漫步的惬意。",
-        "adventure": "这条路线主打【硬核挑战】，涵盖了百鸟林、一线天、好汉坡和玻璃栈道等险峻景点。这是对体力与胆量的双重考验，适合热爱户外运动和寻求刺激的年轻游客。",
-        "culture": "这条路线主打【古刹祈福】，深入云雾山的核心文化区。您将游览古寺、敲响平安钟、在藏经阁感受书香，并在素斋馆品尝美食，是一次净化心灵的旅程。",
-        "nature": "这条路线主打【自然风光】，避开了人造设施较多的区域，带您深入森林、瀑布和高山花海，最后直达摘星峰顶，是摄影爱好者和自然观察者的最佳选择。"
-    }
-
+    # 构建结果
     result = {
         "type": "themed_route",
         "theme": selected_key,
-        "reason": reasons[selected_key],
-        "description": f"为您推荐【{selected_key}】主题路线。\n推荐理由：{reasons[selected_key]}\n全程距离：{total_dist}米。",
-        "path_codes": full_path,
+        "description": f"推荐【{selected_key}】路线，全程 {total_dist} 米。",
         "path_names": path_names
     }
     
     return json.dumps(result, ensure_ascii=False)
 
+# 注册第四个工具：查询景点详情
 @mcp.tool()
-def get_spot_info(name: str) -> str:
+def get_spot_temp(name: str) -> str:
     """查询景点详细介绍"""
-    code = _get_code(name)
+    # 查找代号
+    code = GetCode(name)
+    # 如果找到了
     if code:
-        return f"【{SPOTS_INFO[code]['name']}】\n简介: {SPOTS_INFO[code]['desc']}"
+        temp = PLACE[code]
+        # 返回格式化的介绍字符串
+        return f"【{temp['name']}】\n简介: {temp['desc']}"
+    # 没找到则提示
     return "未找到该景点，请输入正确的景点名称。"
 
+# 注册第五个工具：列出所有景点
 @mcp.tool()
 def list_all_spots() -> str:
     """列出景区所有景点名称"""
-    names = [f"{k}: {v['name']}" for k, v in SPOTS_INFO.items()]
-    return "\n".join(names)
+    lines = [] # 存储每一行的列表
+    # 遍历所有景点
+    for k in PLACE:
+        name = PLACE[k]['name']
+        # 拼接代号和名字
+        lines.append(f"{k}: {name}")
+    
+    # 用换行符连接所有行并返回
+    return "\n".join(lines)
 
+# --- 主程序入口 ---
 if __name__ == "__main__":
+    # 启动 MCP 服务，使用标准输入输出(stdio)作为传输方式
+    # 这样可以让 Cursor, Claude Desktop 等客户端直接连接使用
     mcp.run(transport="stdio")
